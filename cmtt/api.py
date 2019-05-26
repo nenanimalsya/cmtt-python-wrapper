@@ -79,7 +79,8 @@ class CMTT:
             url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
 
             logger.info(f'[POST]: url={url} | data={payload} | files={files}')
-            async with session.post(url, headers=self.headers, data=payload, files=files) as response:
+            data = payload if not path else files
+            async with session.post(url, headers=self.headers, data=data) as response:
                 response.raise_for_status()
 
                 return await response.json()
