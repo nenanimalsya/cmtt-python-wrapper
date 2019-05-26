@@ -3,6 +3,7 @@ from .settings import *
 from .enums import *
 
 import aiohttp
+import aiofiles
 import logging
 import json
 
@@ -61,8 +62,8 @@ class CMTT:
         files = None
 
         if path:
-            with open(path, 'rb') as content:
-                files = content.read()
+            async with aiofiles.open(path, 'rb') as content:
+                files = await content.read()
 
             files = {'file': files}
 
