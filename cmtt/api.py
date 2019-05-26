@@ -66,7 +66,8 @@ class CMTT:
                 files = await content.read()
 
             files = {'file': files}
-
+        if params is None:
+            params = {}
         payload = {k: v for k, v in params.items() if v is not None}
 
         if 'attachments' in payload:
