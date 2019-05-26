@@ -61,7 +61,10 @@ class CMTT:
         files = None
 
         if path:
-            files = {'file': open(path, 'rb')}
+            with open(path, 'rb') as content:
+                files = content.read()
+
+            files = {'file': files}
 
         payload = {k: v for k, v in params.items() if v is not None}
 
