@@ -96,7 +96,7 @@ class MuteAction(NameEnum):
 
 class Committee:
 
-	def __init__(self, platform: Platform, token=None: str, version=API_VERSION):
+	def __init__(self, platform: Platform, token: str=None, version=API_VERSION):
 		self.platform = platform
 		self.token = token
 		self.version = version
@@ -120,14 +120,15 @@ class Committee:
 			return False
 
 	def _doGetRequest(self, endpoint: str, params: dict = {}):
-		payload = {k: v for k, v in params if params is not None}
+
+		payload = {k: v for k, v in params.items() if v is not None}
 		
 		while self._hittingCallsLimit():
 			pass
 
 		response = requests.get(
 			f'https://api.{self.platform}.ru/v{self.version}' + endpoint, 
-			headers=headers, 
+			headers=self.headers, 
 			params=payload
 		)
 
@@ -140,7 +141,7 @@ class Committee:
 		if filepath:
 			files = {'file': open(filepath, 'rb')}
 		
-		payload = {k: v for k, v in params if params is not None}
+		payload = {k: v for k, v in params.items() if v is not None}
 
 		if 'attachments' in payload:
 			payload['attachments']=json.dumps(payload['attachments'])
