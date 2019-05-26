@@ -17,5 +17,6 @@ asyncio.get_event_loop().run_until_complete(main()) # asyncio.run(main()) для
 
 ```
 # Документация
+
 https://cmtt-ru.github.io/osnova-api/redoc.html<br/>
 https://cmtt-ru.github.io/osnova-api/swagger.html
