@@ -8,7 +8,7 @@ from cmtt_python_wrapper import CMTT, Platform
 import asyncio
 
 async def main():
-    client = Committee(Platform.TJ,'YOUR_TOKEN')
+    client = CMTT(Platform.TJ,'YOUR_TOKEN')
 
     uploaded = await client.uploaderExtract('https://i.imgur.com/K7Ovp03.jpg')
     await client.commentSend(92781,'',attachments=uploaded['result'])
