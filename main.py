@@ -19,9 +19,9 @@ class NameEnum(Enum):
 
 
 class Platform(ValueEnum):
-	TJ = 'tjournal.ru'
-	DTF = 'dtf.ru'
-	VC = 'vc.ru'
+	TJ = 'tjournal'
+	DTF = 'dtf'
+	VC = 'vc'
 
 
 class TimelineSorting(NameEnum):
@@ -96,11 +96,16 @@ class MuteAction(NameEnum):
 
 class Committee:
 
-	def __init__(self, platform: Platform, token: str, version=API_VERSION):
+	def __init__(self, platform: Platform, token=None: str, version=API_VERSION):
 		self.platform = platform
 		self.token = token
 		self.version = version
 		self.calls_timing = list()
+
+		self.headers = {'User-agent': USER_AGENT}
+
+		if self.token:
+			self.headers['X-Device-Token'] = self.token
 
 	def _hittingCallsLimit(self) -> bool:
 		if len(self.calls_timing) == CALLS_LIMIT:
@@ -114,35 +119,44 @@ class Committee:
 			self.calls_timing.append(datetime.now())
 			return False
 
-	def _doGetRequest(self, endpoint: str, params: dict = None):
-		payload = {}
-		if params:
-			for k,v in params.items():
-				if params[k] is not None:
-					payload[k]=v
-		headers = {'User-agent': USER_AGENT, 'X-Device-Token': self.token}
+	def _doGetRequest(self, endpoint: str, params: dict = {}):
+		payload = {k: v for k, v in params if params is not None}
+		
 		while self._hittingCallsLimit():
 			pass
-		response = requests.get('https://api.' + str(self.platform) + '/v' + self.version + endpoint, headers=headers, params=payload)
+
+		response = requests.get(
+			f'https://api.{self.platform}.ru/v{self.version}' + endpoint, 
+			headers=headers, 
+			params=payload
+		)
+
 		response.raise_for_status()
+
 		return response.json()
 
-	def _doPostRequest(self, endpoint: str, params: dict = None, filepath=None):
+	def _doPostRequest(self, endpoint: str, params: dict = {}, filepath=None):
 		files = None
 		if filepath:
 			files = {'file': open(filepath, 'rb')}
-		payload = {}
-		if params:
-			for k,v in params.items():
-				if params[k] is not None:
-					payload[k]=v
+		
+		payload = {k: v for k, v in params if params is not None}
+
 		if 'attachments' in payload:
 			payload['attachments']=json.dumps(payload['attachments'])
-		headers = {'User-agent': USER_AGENT, 'X-Device-Token': self.token}
+
 		while self._hittingCallsLimit():
 			pass
-		response = requests.post('https://api.' + str(self.platform) + '/v' + self.version + endpoint, headers=headers, data=payload, files=files)
+
+		response = requests.post(
+			f'https://api.{self.platform}.ru/v{self.version}' + endpoint, 
+			headers=self.headers, 
+			data=payload, 
+			files=files
+		)
+
 		response.raise_for_status()
+
 		return response.json()
 
 	def getTimeline(self, category: TimelineCategory, sorting: TimelineSorting, count: int = None, offset: int = None):
