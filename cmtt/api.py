@@ -52,7 +52,7 @@ class CMTT:
         async with aiohttp.ClientSession() as session:
             url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
 
-            logger.info(f'[POST]: url={url} | data={payload}')
+            logger.info(f'[GET]: url={url} | data={payload}')
             async with session.get(url, headers=self.headers, params=payload) as response:
                 response.raise_for_status()
 
@@ -66,7 +66,8 @@ class CMTT:
                 files = await content.read()
 
             files = {'file': files}
-
+        if params is None:
+            params = {}
         payload = {k: v for k, v in params.items() if v is not None}
 
         if 'attachments' in payload:
@@ -79,7 +80,8 @@ class CMTT:
             url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
 
             logger.info(f'[POST]: url={url} | data={payload} | files={files}')
-            async with session.post(url, headers=self.headers, data=payload, files=files) as response:
+            data = payload if not path else files
+            async with session.post(url, headers=self.headers, data=data) as response:
                 response.raise_for_status()
 
                 return await response.json()
