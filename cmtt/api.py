@@ -52,7 +52,7 @@ class CMTT:
         async with aiohttp.ClientSession() as session:
             url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
 
-            logger.info(f'[POST]: url={url} | data={payload}')
+            logger.info(f'[GET]: url={url} | data={payload}')
             async with session.get(url, headers=self.headers, params=payload) as response:
                 response.raise_for_status()
 
