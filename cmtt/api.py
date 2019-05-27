@@ -1,8 +1,8 @@
-from datetime import datetime
 from .settings import *
 from .enums import *
 
 import aiohttp
+import asyncio
 import aiofiles
 import logging
 import json
@@ -17,46 +17,32 @@ logger = create_logger()
 
 
 class CMTT:
-    __slots__ = ('platform', 'token', 'version', 'calls_timing', 'headers')
+    __slots__ = ('platform', 'token', 'version', 'headers', '_semaphore')
 
-    def __init__(self, platform: Platform, token: str = None, version=API_VERSION):
+    def __init__(self, platform: Platform, token: str = None, version: str = API_VERSION):
         self.platform = platform
         self.token = token
         self.version = version
-        self.calls_timing = []
         self.headers = {'User-agent': USER_AGENT}
+        self._semaphore = asyncio.Semaphore(CALLS_LIMIT)
 
         if self.token:
             self.headers['X-Device-Token'] = self.token
-
-    def _hittingCallsLimit(self) -> bool:
-        if len(self.calls_timing) == CALLS_LIMIT:
-            if (datetime.now() - self.calls_timing[-1]).seconds >= 1:
-                self.calls_timing.pop(-1)
-                self.calls_timing.append(datetime.now())
-                return False
-            else:
-                return True
-        else:
-            self.calls_timing.append(datetime.now())
-            return False
 
     async def _get(self, endpoint: str, params: dict = None):
         if params is None:
             params = {}
         payload = {k: v for k, v in params.items() if v is not None}
 
-        while self._hittingCallsLimit():
-            pass
+        async with self._semaphore:
+            async with aiohttp.ClientSession() as session:
+                url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
 
-        async with aiohttp.ClientSession() as session:
-            url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
+                logger.info(f'[GET]: url={url} | data={payload}')
+                async with session.get(url, headers=self.headers, params=payload) as response:
+                    response.raise_for_status()
 
-            logger.info(f'[POST]: url={url} | data={payload}')
-            async with session.get(url, headers=self.headers, params=payload) as response:
-                response.raise_for_status()
-
-                return await response.json()
+                    return await response.json()
 
     async def _post(self, endpoint: str, params: dict = None, path: str = None):
         files = None
@@ -64,25 +50,25 @@ class CMTT:
         if path:
             async with aiofiles.open(path, 'rb') as content:
                 files = await content.read()
-
             files = {'file': files}
 
+        if params is None:
+            params = {}
         payload = {k: v for k, v in params.items() if v is not None}
 
         if 'attachments' in payload:
             payload['attachments'] = json.dumps(payload['attachments'])
 
-        while self._hittingCallsLimit():
-            pass
+        async with self._semaphore:
+            async with aiohttp.ClientSession() as session:
+                url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
+                data = payload if not path else files
 
-        async with aiohttp.ClientSession() as session:
-            url = f'https://api.{self.platform}.ru/v{self.version}' + endpoint
+                logger.info(f'[POST]: url={url} | data={payload} | files={files}')
+                async with session.post(url, headers=self.headers, data=data) as response:
+                    response.raise_for_status()
 
-            logger.info(f'[POST]: url={url} | data={payload} | files={files}')
-            async with session.post(url, headers=self.headers, data=payload, files=files) as response:
-                response.raise_for_status()
-
-                return await response.json()
+                    return await response.json()
 
     async def getTimeline(self, category: TimelineCategory, sorting: TimelineSorting, count: int = None,
                           offset: int = None):
